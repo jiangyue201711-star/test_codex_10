@@ -1,10 +1,8 @@
 # InversionBench v1 Benchmark 生成器
 
-本目录提供基于 PRD 的自动任务生成 Pipeline。
+基于 PRD 的自动任务生成 Pipeline，已覆盖 PRD 中 L1~L8 的**全部示例算法族**。
 
-## 产物结构
-
-运行生成脚本后输出：
+## 生成结果
 
 ```text
 benchmark/tasks/
@@ -15,42 +13,45 @@ benchmark/tasks/
   answers/task_xxxx.data.comp   # 仅 --save-hidden 时生成
 ```
 
-任务面向 Agent 的输入为 `decomp.py` 与 `data.txt`，目标是构造 `data.comp`。
-`answers/` 目录是隐藏答案（离线评测用），默认不写出。
+> Agent 可见：`decomp.py` + `data.txt`；
+> 隐藏答案：`answers/*.data.comp`（离线评测）。
 
-## 使用方法
+## 用法
 
 ```bash
-python3 benchmark/generate_tasks.py --output benchmark/tasks --total 1000 --seed 123456 --max-size 2500 --save-hidden
+python3 benchmark/generate_tasks.py \
+  --output benchmark/tasks \
+  --total 1000 \
+  --seed 123456 \
+  --max-size 2500 \
+  --save-hidden
 ```
 
-### 参数
+## 参数
 
-- `--output`：输出目录（默认 `benchmark/tasks`）
-- `--total`：任务总数（默认 `1000`）
-- `--seed`：随机种子（默认 `123456`）
-- `--max-size`：`data.comp` 大小限制（默认 `2500`）
-- `--save-hidden`：保存隐藏答案 `answers/*.data.comp`
+- `--output`：输出目录
+- `--total`：任务总数（默认 1000）
+- `--seed`：随机种子
+- `--max-size`：`data.comp` 最大字节数
+- `--save-hidden`：保存隐藏答案
 
-## 覆盖层级
+## L1~L8 示例算法实现映射
 
-脚本按照 PRD 的 V1 比例构造 8 个层级：
+- **L1 无状态变换**：`rle`、`base85`、`xor`、`char_substitution`
+- **L2 结构化解码**：`lz77`、`lzss`、`huffman`、`delta`、`bytecode_interpreter`
+- **L3 状态型解码**：`adaptive_huffman`、`dictionary_growth_lzw`、`stack_vm`、`multi_round_decode`
+- **L4 概率/位级编码**：`arithmetic_coding_toy`、`range_coding_toy`、`multi_context_nibble`
+- **L5 程序型反演**：`dsl_interpreter`、`branch_dependent_output`、`checksum_structure`、`combinational_logic`
+- **L6 对抗与混淆**：`dead_code_injected`、`obfuscated_variables`、`useless_context`、`misleading_branches`
+- **L7 多阶段任务**：`multi_stage_decode`、`intermediate_dependency`、`pipeline_execution`
+- **L8 混合任务**：`arithmetic_plus_lz`、`vm_plus_encoding`、`compression_plus_encryption`
 
-- L1: xor
-- L2: rle
-- L3: stateful delta
-- L4: nibble context
-- L5: checksum frame
-- L6: obfuscated xor
-- L7: multi-stage (rle + xor)
-- L8: hybrid (delta + nibble)
+## 合法性校验
 
-## 校验逻辑
-
-每个任务生成时都执行：
+每个任务自动检查：
 
 1. `comp = encode(data)`
 2. `decode(comp) == data`
 3. `len(comp) <= max_size`
 
-不满足则重采样，确保任务合法可解。
+失败会重采样并重试，确保任务可解。
